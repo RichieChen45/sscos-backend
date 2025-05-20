@@ -1,0 +1,18 @@
+{
+  "name": "midtrans-qris-backend",
+  "version": "1.0.0",
+  "description": "Backend to generate Midtrans QRIS payment URL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "midtrans-client": "^1.4.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
