@@ -1,18 +1,25 @@
+# SSCOS Backend
+
+Backend server for SSCOS using **Express.js** and **Midtrans** integration to handle QRIS payment transactions.
+
+## Features
+
+- Create QRIS payment transactions via Midtrans API
+- Check payment transaction status
+- Simple REST API with CORS enabled
+- Environment variable configuration using `.env`
+
 ## Getting Started
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+### Prerequisites
 
-## Folder Structure
+- Node.js (v16+ recommended)
+- npm
+- Midtrans account for API keys
 
-The workspace contains two folders by default, where:
+### Installation
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
-
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
-
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/RichieChen45/sscos-backend.git
+   cd sscos-backend
