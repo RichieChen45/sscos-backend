@@ -51,6 +51,8 @@ app.post("/create-transaction", async (req, res) => {
     };
 
     const transaction = await snap.createTransaction(parameter);
+    console.log("🔁 Created transaction for order:", orderId);
+    console.log("Full transaction object:", JSON.stringify(transaction, null, 2));
     console.log("Midtrans transaction response:", JSON.stringify(transaction, null, 2));
 
     const qrAction = transaction.actions?.find(action => action.name === "qr-code");
@@ -78,13 +80,15 @@ app.get("/check-transaction", async (req, res) => {
       return res.status(400).json({ error: "Missing order_id" });
     }
 
-    console.log("Checking status for order ID:", order_id);
+    console.log("🔍 Checking status for order ID:", order_id);
+
     const statusResponse = await core.transaction.status(order_id);
-    console.log("Status response:", JSON.stringify(statusResponse, null, 2));
+    console.log("✅ Status response:", JSON.stringify(statusResponse, null, 2));
 
     return res.json(statusResponse);
   } catch (error) {
-    console.error("Midtrans status check error:", error.response?.data || error.message);
+    console.error("❌ Midtrans status check error:");
+    console.error(error); // <-- Log full error object
     return res.status(500).json({ error: error.message || "Server error" });
   }
 });
