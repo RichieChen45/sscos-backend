@@ -1,4 +1,4 @@
-require("dotenv").config(); // <-- Add this line at the top
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -10,7 +10,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Snap client (for generating QRIS)
 const snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
+});
+
+// Core API client (for checking transaction status)
+const core = new midtransClient.CoreApi({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
@@ -55,7 +63,7 @@ app.post("/create-transaction", async (req, res) => {
     // Return both qrUrl and orderId
     return res.json({ qrUrl, orderId });
   } catch (error) {
-    console.error("Midtrans error:", error);
+    console.error("Midtrans error:", error.response ? error.response.data : error.message);
     return res.status(500).json({ error: error.message || "Server error" });
   }
 });
@@ -68,10 +76,11 @@ app.get("/check-transaction", async (req, res) => {
       return res.status(400).json({ error: "Missing order_id" });
     }
 
-    const statusResponse = await snap.transaction.status(order_id);
+    const statusResponse = await core.transaction.status(order_id);
+    console.log("Status Response:", statusResponse);
     return res.json(statusResponse);
   } catch (error) {
-    console.error("Midtrans status check error:", error);
+    console.error("Midtrans status check error:", error.response ? error.response.data : error.message);
     return res.status(500).json({ error: error.message || "Server error" });
   }
 });
