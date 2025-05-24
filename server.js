@@ -10,14 +10,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Snap client (for generating QRIS)
+// Midtrans Snap client for creating QRIS transactions
 const snap = new midtransClient.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-// Core API client (for checking transaction status)
+// Midtrans Core API client for checking transaction status
 const core = new midtransClient.CoreApi({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
@@ -34,6 +34,7 @@ app.post("/create-transaction", async (req, res) => {
     }
 
     const orderId = "order-" + Date.now();
+    console.log("Generated order ID:", orderId);
 
     const parameter = {
       transaction_details: {
@@ -50,20 +51,20 @@ app.post("/create-transaction", async (req, res) => {
     };
 
     const transaction = await snap.createTransaction(parameter);
-
     console.log("Midtrans transaction response:", JSON.stringify(transaction, null, 2));
 
     const qrAction = transaction.actions?.find(action => action.name === "qr-code");
     const qrUrl = qrAction?.url || transaction.redirect_url;
 
     if (!qrUrl) {
+      console.error("QRIS URL missing from Midtrans response.");
       return res.status(500).json({ error: "Failed to get QRIS URL from Midtrans response." });
     }
 
-    // Return both qrUrl and orderId
+    // Return QR URL and order ID to frontend
     return res.json({ qrUrl, orderId });
   } catch (error) {
-    console.error("Midtrans error:", error.response ? error.response.data : error.message);
+    console.error("Midtrans transaction error:", error.response?.data || error.message);
     return res.status(500).json({ error: error.message || "Server error" });
   }
 });
@@ -72,19 +73,22 @@ app.post("/create-transaction", async (req, res) => {
 app.get("/check-transaction", async (req, res) => {
   try {
     const { order_id } = req.query;
+
     if (!order_id) {
       return res.status(400).json({ error: "Missing order_id" });
     }
 
+    console.log("Checking status for order ID:", order_id);
     const statusResponse = await core.transaction.status(order_id);
-    console.log("Status Response:", statusResponse);
+    console.log("Status response:", JSON.stringify(statusResponse, null, 2));
+
     return res.json(statusResponse);
   } catch (error) {
-    console.error("Midtrans status check error:", error.response ? error.response.data : error.message);
+    console.error("Midtrans status check error:", error.response?.data || error.message);
     return res.status(500).json({ error: error.message || "Server error" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
