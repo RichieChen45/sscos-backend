@@ -96,3 +96,46 @@ app.get("/check-transaction", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
+const admin = require("firebase-admin");
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://sscos-f6774-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+
+const rtdb = admin.database();
+
+function monitorDeviceHeartbeat(deviceId, thresholdSeconds = 7) {
+  setInterval(async () => {
+    try {
+      const snapshot = await rtdb.ref(`${deviceId}/last_seen`).once("value");
+      const lastSeen = snapshot.val();
+
+      if (!lastSeen) return;
+
+      const now = Math.floor(Date.now() / 1000);
+      const diff = now - lastSeen;
+
+      const powerRef = rtdb.ref(`${deviceId}/power`);
+
+      if (diff > thresholdSeconds) {
+        // Mark as offline
+        await powerRef.set("offline");
+        console.log(`[${deviceId}] Device offline (last seen ${diff}s ago)`);
+      } else {
+        // Mark as online
+        await powerRef.set("online");
+        console.log(`[${deviceId}] Device online`);
+      }
+    } catch (error) {
+      console.error(`Error monitoring ${deviceId}:`, error);
+    }
+  }, 10000); // Check every 10 seconds
+}
+
+// Start monitoring
+monitorDeviceHeartbeat("Device1");
+// monitorDeviceHeartbeat("Device2"); // Add more if needed
