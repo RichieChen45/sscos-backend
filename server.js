@@ -41,8 +41,6 @@ app.post("/create-transaction", async (req, res) => {
         order_id: orderId,
         gross_amount: parseInt(total),
       },
-      payment_type: "qris",
-      qris: {},
       customer_details: {
         first_name: "Customer",
         email: "customer@example.com",
