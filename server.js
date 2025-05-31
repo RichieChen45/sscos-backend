@@ -34,13 +34,15 @@ app.post("/create-transaction", async (req, res) => {
     }
 
     const orderId = "order-" + Date.now();
-    console.log("Generated order ID:", orderId);
+    console.log("🆕 Creating QRIS for order:", orderId);
 
-    const parameter = {
+    const chargeParams = {
+      payment_type: "qris",
       transaction_details: {
         order_id: orderId,
         gross_amount: parseInt(total),
       },
+      qris: {},
       customer_details: {
         first_name: "Customer",
         email: "customer@example.com",
@@ -48,24 +50,21 @@ app.post("/create-transaction", async (req, res) => {
       },
     };
 
-    const transaction = await snap.createTransaction(parameter);
-    console.log("🔁 Created transaction for order:", orderId);
-    console.log("Full transaction object:", JSON.stringify(transaction, null, 2));
-    console.log("Midtrans transaction response:", JSON.stringify(transaction, null, 2));
+    const transaction = await core.charge(chargeParams);
 
-    const qrAction = transaction.actions?.find(action => action.name === "qr-code");
-    const qrUrl = qrAction?.url || transaction.redirect_url;
+    console.log("✅ Midtrans charge response:", JSON.stringify(transaction, null, 2));
+
+    const qrUrl = transaction.actions?.find(a => a.name === "qr-code")?.url;
 
     if (!qrUrl) {
-      console.error("QRIS URL missing from Midtrans response.");
-      return res.status(500).json({ error: "Failed to get QRIS URL from Midtrans response." });
+      console.error("❌ QR code URL not found in response.");
+      return res.status(500).json({ error: "QRIS URL not found in Midtrans response." });
     }
 
-    // Return QR URL and order ID to frontend
     return res.json({ qrUrl, orderId });
   } catch (error) {
-    console.error("Midtrans transaction error:", error.response?.data || error.message);
-    return res.status(500).json({ error: error.message || "Server error" });
+    console.error("❌ Error creating transaction:", error.response?.data || error.message || error);
+    return res.status(500).json({ error: "Failed to create QRIS transaction" });
   }
 });
 
@@ -95,9 +94,9 @@ app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
 
-const admin = require("firebase-admin");
+const admin = require('firebase-admin');
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
+const serviceAccount = require(process.env.FIREBASE_ADMIN_KEY_PATH);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
