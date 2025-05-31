@@ -94,9 +94,8 @@ app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
 
+console.log("🔧 Starting server, importing firebase-admin...");
 const admin = require('firebase-admin');
-
-// const serviceAccount = require('./firebase-admin.json');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
 
