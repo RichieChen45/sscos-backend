@@ -7,8 +7,13 @@ const midtransClient = require("midtrans-client");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
+app.options('*', cors());
+app.use(express.json());
 
 // Midtrans Snap client for creating QRIS transactions
 const snap = new midtransClient.Snap({
@@ -24,7 +29,7 @@ const core = new midtransClient.CoreApi({
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-// Create transaction endpoint
+// Create transaction endpoint using Snap (for web redirect to Midtrans payment UI)
 app.post("/create-transaction", async (req, res) => {
   try {
     const { total } = req.body;
@@ -34,15 +39,13 @@ app.post("/create-transaction", async (req, res) => {
     }
 
     const orderId = "order-" + Date.now();
-    console.log("🆕 Creating QRIS for order:", orderId);
+    console.log("🆕 Creating Snap transaction for order:", orderId);
 
-    const chargeParams = {
-      payment_type: "qris",
+    const parameter = {
       transaction_details: {
         order_id: orderId,
         gross_amount: parseInt(total),
       },
-      qris: {},
       customer_details: {
         first_name: "Customer",
         email: "customer@example.com",
@@ -50,21 +53,14 @@ app.post("/create-transaction", async (req, res) => {
       },
     };
 
-    const transaction = await core.charge(chargeParams);
+    const transaction = await snap.createTransaction(parameter);
 
-    console.log("✅ Midtrans charge response:", JSON.stringify(transaction, null, 2));
+    console.log("✅ Midtrans Snap response:", JSON.stringify(transaction, null, 2));
 
-    const qrUrl = transaction.actions?.find(a => a.name === "qr-code")?.url;
-
-    if (!qrUrl) {
-      console.error("❌ QR code URL not found in response.");
-      return res.status(500).json({ error: "QRIS URL not found in Midtrans response." });
-    }
-
-    return res.json({ qrUrl, orderId });
+    return res.json({ redirectUrl: transaction.redirect_url, orderId });
   } catch (error) {
-    console.error("❌ Error creating transaction:", error.response?.data || error.message || error);
-    return res.status(500).json({ error: "Failed to create QRIS transaction" });
+    console.error("❌ Error creating Snap transaction:", error.response?.data || error.message || error);
+    return res.status(500).json({ error: "Failed to create Snap transaction" });
   }
 });
 
@@ -97,7 +93,9 @@ app.listen(PORT, () => {
 console.log("🔧 Starting server, importing firebase-admin...");
 const admin = require('firebase-admin');
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
+const serviceAccount = require('./firebase-admin.json');
+
+// const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
